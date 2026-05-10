@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>MEPAuto.Server.Versioning</RootNamespace>
+    <AssemblyName>MEPAuto.Server.Versioning</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\shared\MEPAuto.Contracts\MEPAuto.Contracts.csproj" />
+    <ProjectReference Include="..\..\MEPAuto.Server.Core\MEPAuto.Server.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="MEPAuto.Server.Tests" />
+  </ItemGroup>
+
+</Project>

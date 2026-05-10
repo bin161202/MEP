@@ -1,0 +1,134 @@
+name: Release
+
+# Trigger khi push tag vX.Y.Z (vd v0.1.0, v1.2.3-rc1)
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  build-msi:
+    name: Build signed MSI installer
+    runs-on: windows-latest
+    permissions:
+      contents: write  # cần để tạo GitHub Release
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history để git describe lấy tag chính xác
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-win-${{ hashFiles('**/Directory.Packages.props', '**/*.csproj') }}
+          restore-keys: nuget-win-
+
+      - name: Resolve version từ git tag
+        id: version
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"  # vd "v0.1.0"
+          $version = $tag.TrimStart('v')   # "0.1.0"
+          $msiVersion = ($version -split '-')[0]
+          if ($msiVersion -notmatch '^\d+\.\d+\.\d+$') {
+            throw "Tag '$tag' không hợp lệ. Format yêu cầu: vX.Y.Z hoặc vX.Y.Z-suffix"
+          }
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+          echo "msi_version=$msiVersion" >> $env:GITHUB_OUTPUT
+          echo "Tag $tag → version $version (MSI $msiVersion)"
+
+      - name: Install WiX v4 CLI
+        run: dotnet tool install --global wix --version 4.0.5
+
+      - name: Build MSI (6 version + obfuscation + harvest + WiX + validate)
+        shell: pwsh
+        run: |
+          ./installer/Build-MSI.ps1 -Version "${{ steps.version.outputs.msi_version }}" -Validate
+
+      - name: Locate MSI output
+        id: msi
+        shell: pwsh
+        run: |
+          $msi = Get-ChildItem installer -Filter "*.msi" -Recurse | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $msi) { throw "Không tìm thấy MSI output sau Build-MSI.ps1" }
+          $renamed = "MEPAuto-Setup-v${{ steps.version.outputs.version }}.msi"
+          $renamedPath = Join-Path $msi.Directory $renamed
+          Move-Item $msi.FullName $renamedPath -Force
+          echo "msi_path=$renamedPath" >> $env:GITHUB_OUTPUT
+          echo "msi_name=$renamed" >> $env:GITHUB_OUTPUT
+          Write-Host "MSI: $renamedPath"
+
+      # Code-signing — placeholder. Thêm SIGN_CERT_BASE64 + SIGN_CERT_PASSWORD vào GitHub Secrets khi có cert.
+      - name: Sign MSI (skipped — chưa có cert)
+        if: env.SIGN_CERT_BASE64 != ''
+        env:
+          SIGN_CERT_BASE64: ${{ secrets.SIGN_CERT_BASE64 }}
+          SIGN_CERT_PASSWORD: ${{ secrets.SIGN_CERT_PASSWORD }}
+        shell: pwsh
+        run: |
+          $certPath = "$env:RUNNER_TEMP\codesign.pfx"
+          [IO.File]::WriteAllBytes($certPath, [Convert]::FromBase64String($env:SIGN_CERT_BASE64))
+          & signtool.exe sign /f $certPath /p $env:SIGN_CERT_PASSWORD `
+            /tr http://timestamp.digicert.com /td sha256 /fd sha256 `
+            "${{ steps.msi.outputs.msi_path }}"
+          Remove-Item $certPath -Force
+
+      - name: Compute SHA256 checksum
+        id: hash
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash "${{ steps.msi.outputs.msi_path }}" -Algorithm SHA256).Hash.ToLower()
+          $hashFile = "${{ steps.msi.outputs.msi_path }}.sha256"
+          "$hash *${{ steps.msi.outputs.msi_name }}" | Set-Content -Path $hashFile -Encoding ASCII
+          echo "sha256=$hash" >> $env:GITHUB_OUTPUT
+          echo "hash_file=$hashFile" >> $env:GITHUB_OUTPUT
+
+      - name: Extract release notes từ CHANGELOG
+        id: notes
+        shell: pwsh
+        run: |
+          $changelog = Get-Content CHANGELOG.md -Raw -ErrorAction SilentlyContinue
+          if (-not $changelog) {
+            $body = "Release ${{ github.ref_name }}"
+          } else {
+            $version = "${{ steps.version.outputs.version }}"
+            $pattern = "(?ms)^## \[$([regex]::Escape($version))\].*?(?=^## \[|\Z)"
+            $match = [regex]::Match($changelog, $pattern)
+            if ($match.Success) {
+              $body = $match.Value.Trim()
+            } else {
+              $body = "Release v$version (chưa có entry trong CHANGELOG.md)"
+            }
+          }
+          $body += "`n`n**SHA256:** ``${{ steps.hash.outputs.sha256 }}``"
+          $bodyFile = "$env:RUNNER_TEMP\release-body.md"
+          $body | Set-Content $bodyFile -Encoding UTF8
+          echo "body_file=$bodyFile" >> $env:GITHUB_OUTPUT
+
+      - name: Upload MSI artifact (CI history)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.msi.outputs.msi_name }}
+          path: |
+            ${{ steps.msi.outputs.msi_path }}
+            ${{ steps.hash.outputs.hash_file }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: MEPAuto ${{ github.ref_name }}
+          body_path: ${{ steps.notes.outputs.body_file }}
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          files: |
+            ${{ steps.msi.outputs.msi_path }}
+            ${{ steps.hash.outputs.hash_file }}

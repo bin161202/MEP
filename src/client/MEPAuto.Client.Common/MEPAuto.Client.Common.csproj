@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>MEPAuto.Client.Common</RootNamespace>
+    <AssemblyName>MEPAuto.Client.Common</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\shared\MEPAuto.Contracts\MEPAuto.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

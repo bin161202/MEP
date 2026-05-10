@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<RevitAddIns>
+  <AddIn Type="Application">
+    <Name>MEPAuto 2026</Name>
+    <Assembly>__MEPAUTO_INSTALL_PATH__</Assembly>
+    <FullClassName>MEPAuto.Client.Shell.RevitApp</FullClassName>
+    <ClientId>b2c3d4e5-2026-4002-8002-000000002026</ClientId>
+    <VendorId>MEPAuto</VendorId>
+    <VendorDescription>MEPAuto Team — Revit MEP Add-in</VendorDescription>
+  </AddIn>
+</RevitAddIns>

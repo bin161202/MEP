@@ -1,0 +1,29 @@
+# MEPAuto VPS deploy — variant "nginx system-level" (DEFAULT cho shared VPS với EPAuto).
+#
+# Dùng khi VPS đã có nginx system serving EPAuto (hoặc site khác) → KHÔNG di dời.
+# Chỉ chạy API container, expose 127.0.0.1:8081 → nginx system proxy_pass tới.
+# (Port 8081 vì EPAuto đã chiếm 8080 trên VPS này.)
+#
+# Site config nginx system: tools/deploy/nginx-system-site.conf.template
+# (LEAD copy + sửa domain + đặt vào /etc/nginx/sites-available/, ln sites-enabled, reload nginx)
+
+services:
+  api:
+    build:
+      context: ../..
+      dockerfile: src/server/MEPAuto.Server.Api/Dockerfile
+    image: mepauto-api:latest
+    container_name: mepauto-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+      - JWT__SIGNING_KEY=${JWT_SIGNING_KEY}
+      - JWT__ISSUER=${JWT_ISSUER:-https://api.mepauto.local}
+      - JWT__AUDIENCE=${JWT_AUDIENCE:-mepauto-client}
+      - DataDir=/var/mepauto-data
+    volumes:
+      - /var/mepauto-data:/var/mepauto-data
+    restart: unless-stopped
+    ports:
+      # Bind 127.0.0.1:8081 → nginx system proxy_pass tới (port 8081 để tránh conflict với EPAuto:8080)
+      - "127.0.0.1:8081:8080"

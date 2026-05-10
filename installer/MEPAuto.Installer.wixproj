@@ -1,0 +1,31 @@
+<Project Sdk="WixToolset.Sdk/4.0.5">
+
+  <PropertyGroup>
+    <OutputType>Package</OutputType>
+    <OutputName>MEPAuto-Setup</OutputName>
+    <Configuration Condition="'$(Configuration)' == ''">Release</Configuration>
+    <!-- ProductVersion override qua `-p:ProductVersion=X.Y.Z.0` từ Build-MSI.ps1. Default fallback dev. -->
+    <ProductVersion Condition="'$(ProductVersion)' == ''">0.0.0.0</ProductVersion>
+    <DebugType>none</DebugType>
+    <!-- Suppress ICE policy validation cho perUser MSI -->
+    <SuppressIces>ICE38;ICE43;ICE64</SuppressIces>
+    <DefineConstants>
+      ProductVersion=$(ProductVersion);
+      Bin2022=$(MSBuildThisFileDirectory)..\src\client\MEPAuto.Client.Shell\bin\Release-2022;
+      Bin2023=$(MSBuildThisFileDirectory)..\src\client\MEPAuto.Client.Shell\bin\Release-2023;
+      Bin2024=$(MSBuildThisFileDirectory)..\src\client\MEPAuto.Client.Shell\bin\Release-2024;
+      Bin2025=$(MSBuildThisFileDirectory)..\src\client\MEPAuto.Client.Shell\bin\Release-2025;
+      Bin2026=$(MSBuildThisFileDirectory)..\src\client\MEPAuto.Client.Shell\bin\Release-2026;
+      Bin2027=$(MSBuildThisFileDirectory)..\src\client\MEPAuto.Client.Shell\bin\Release-2027;
+      ManifestDir=$(MSBuildThisFileDirectory)addin-manifests;
+      LicenseDir=$(MSBuildThisFileDirectory)
+    </DefineConstants>
+  </PropertyGroup>
+
+  <!-- Version từ Directory.Packages.props (CPM enabled toàn solution). -->
+  <ItemGroup>
+    <PackageReference Include="WixToolset.UI.wixext" />
+    <PackageReference Include="WixToolset.Util.wixext" />
+  </ItemGroup>
+
+</Project>

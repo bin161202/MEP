@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- TargetFramework + IsPackable inherit từ Directory.Build.props (rule: tên project endsWith .Tests → net8.0). -->
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Moq" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Newtonsoft.Json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\server\features\MEPAuto.Server.Versioning\MEPAuto.Server.Versioning.csproj" />
+    <ProjectReference Include="..\..\src\server\features\MEPAuto.Server.HelloWorld\MEPAuto.Server.HelloWorld.csproj" />
+    <ProjectReference Include="..\..\shared\MEPAuto.Contracts\MEPAuto.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,23 @@
+{
+  "_comment": "MEPAuto version manifest cho auto-update. LEAD update file này SAU khi push tag + GitHub Release tạo MSI.",
+  "_workflow": [
+    "1. git tag v0.1.5 && git push --tags",
+    "2. Đợi GitHub Actions Release workflow build xong (~10 phút)",
+    "3. Copy SHA256 từ release notes hoặc download MEPAuto-Setup-v0.1.5.msi.sha256",
+    "4. SSH VPS: nano /var/mepauto-data/version.json",
+    "5. Update 'latest', thêm entry sha256ByVersion, append releaseNotes",
+    "6. Save → VersionService cache 60s → user thấy update notice trong vòng 90s"
+  ],
+
+  "latest": "0.0.0",
+  "minSupported": "0.0.0",
+  "downloadUrlPattern": "https://github.com/MEP-Automation/MEPAuto/releases/download/v{version}/MEPAuto-Setup-v{version}.msi",
+
+  "sha256ByVersion": {
+    "0.0.0": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+
+  "releaseNotes": "## 0.0.0 (Initial)\n\n- Phiên bản đầu tiên",
+
+  "revitVersions": ["2022", "2023", "2024", "2025", "2026", "2027"]
+}

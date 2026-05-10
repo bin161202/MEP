@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>MEPAuto.Server.Infrastructure.FileSystem</RootNamespace>
+    <AssemblyName>MEPAuto.Server.Infrastructure.FileSystem</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
+    <PackageReference Include="BCrypt.Net-Next" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MEPAuto.Server.Core\MEPAuto.Server.Core.csproj" />
+  </ItemGroup>
+
+</Project>

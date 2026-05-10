@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  # ========== Server stack — Linux (không phụ thuộc Revit) ==========
+  build-server:
+    name: Build + test server (net8.0)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-linux-${{ hashFiles('**/Directory.Packages.props', '**/*.csproj') }}
+          restore-keys: nuget-linux-
+
+      - name: Restore + Build server API
+        run: dotnet build src/server/MEPAuto.Server.Api/MEPAuto.Server.Api.csproj -c Release
+
+      - name: Build server features
+        run: |
+          dotnet build src/server/features/MEPAuto.Server.HelloWorld/MEPAuto.Server.HelloWorld.csproj -c Release
+          dotnet build src/server/features/MEPAuto.Server.Versioning/MEPAuto.Server.Versioning.csproj -c Release
+
+      - name: Build server tests
+        run: dotnet build tests/MEPAuto.Server.Tests/MEPAuto.Server.Tests.csproj -c Release
+
+      - name: Run server tests
+        run: dotnet test tests/MEPAuto.Server.Tests/MEPAuto.Server.Tests.csproj -c Release --no-build --logger "trx;LogFileName=server-tests.trx" --results-directory TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-test-results
+          path: TestResults/
+
+  # ========== Client stack — Windows + Revit stubs ==========
+  build-client:
+    name: Build client (Revit ${{ matrix.revit }})
+    runs-on: windows-latest
+    needs: build-server
+    strategy:
+      fail-fast: false
+      matrix:
+        revit: ["2022", "2023", "2024", "2025", "2026", "2027"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-win-${{ hashFiles('**/Directory.Packages.props', '**/*.csproj') }}
+          restore-keys: nuget-win-
+
+      - name: Check Revit stubs presence
+        id: stubs
+        shell: pwsh
+        run: |
+          $stubDir = "tools/revit-stubs/${{ matrix.revit }}"
+          if (Test-Path "$stubDir/RevitAPI.dll") {
+            echo "has_stubs=true" >> $env:GITHUB_OUTPUT
+            echo "Found stubs cho Revit ${{ matrix.revit }}"
+          } else {
+            echo "has_stubs=false" >> $env:GITHUB_OUTPUT
+            echo "::warning::Stubs cho Revit ${{ matrix.revit }} không tồn tại tại $stubDir — skip build."
+          }
+
+      - name: Build client (Release-${{ matrix.revit }})
+        if: steps.stubs.outputs.has_stubs == 'true'
+        continue-on-error: ${{ matrix.revit == '2026' || matrix.revit == '2027' }}
+        run: dotnet build MEPAuto.sln -c Release-${{ matrix.revit }}
+
+      - name: Lint ElementId usage
+        if: matrix.revit == '2024'
+        shell: pwsh
+        run: pwsh tools/verify-elementid-usage.ps1
+
+  # ========== Lint job độc lập (không cần Revit stubs) ==========
+  lint:
+    name: Lint (PowerShell)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: ElementId usage check
+        shell: pwsh
+        run: pwsh tools/verify-elementid-usage.ps1

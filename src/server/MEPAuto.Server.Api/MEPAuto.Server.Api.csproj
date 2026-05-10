@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <RootNamespace>MEPAuto.Server.Api</RootNamespace>
+    <AssemblyName>MEPAuto.Server.Api</AssemblyName>
+    <UserSecretsId>mepauto-server-api</UserSecretsId>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="Newtonsoft.Json" />
+    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Serilog.Sinks.Console" />
+    <PackageReference Include="Serilog.Sinks.File" />
+    <PackageReference Include="Serilog.Formatting.Compact" />
+    <PackageReference Include="Swashbuckle.AspNetCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\shared\MEPAuto.Contracts\MEPAuto.Contracts.csproj" />
+    <ProjectReference Include="..\MEPAuto.Server.Core\MEPAuto.Server.Core.csproj" />
+    <ProjectReference Include="..\MEPAuto.Server.Infrastructure.FileSystem\MEPAuto.Server.Infrastructure.FileSystem.csproj" />
+    <ProjectReference Include="..\features\MEPAuto.Server.HelloWorld\MEPAuto.Server.HelloWorld.csproj" />
+    <ProjectReference Include="..\features\MEPAuto.Server.Versioning\MEPAuto.Server.Versioning.csproj" />
+  </ItemGroup>
+
+  <!-- Auto-discover controllers từ feature project (mỗi feature server-side mới thêm 1 dòng) -->
+  <ItemGroup>
+    <Using Include="MEPAuto.Server.HelloWorld.Application" />
+  </ItemGroup>
+
+</Project>

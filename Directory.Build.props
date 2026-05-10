@@ -1,0 +1,167 @@
+<Project>
+
+  <!-- ============================================================ -->
+  <!-- Common settings cho mọi project trong solution                -->
+  <!-- ============================================================ -->
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <!-- CS1591: missing XML doc comment. NU1803: prerelease floating version. MSB3277: Revit DLL version conflict (transitive). -->
+    <NoWarn>$(NoWarn);CS1591;NU1803;MSB3277</NoWarn>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+    <Authors>MEPAuto Team</Authors>
+    <Company>MEPAuto</Company>
+    <Product>MEPAuto</Product>
+    <Copyright>© $([System.DateTime]::Now.Year) MEPAuto</Copyright>
+    <!-- Version stamp: CI override qua `-p:Version=X.Y.Z`. Default dev local. Phase 5 Updater
+         đọc qua Assembly.GetName().Version để compare với version.json từ VPS. -->
+    <Version Condition="'$(Version)' == ''">0.0.0</Version>
+  </PropertyGroup>
+
+  <!-- ============================================================ -->
+  <!-- 12 build config: Debug/Release × Revit 2022..2027              -->
+  <!-- Áp dụng cho TẤT CẢ project (kể cả server) để dotnet build      -->
+  <!-- MEPAuto.sln -c Release-2024 không fail ở server projects.       -->
+  <!-- ============================================================ -->
+  <PropertyGroup>
+    <Configurations>Debug-2022;Release-2022;Debug-2023;Release-2023;Debug-2024;Release-2024;Debug-2025;Release-2025;Debug-2026;Release-2026;Debug-2027;Release-2027</Configurations>
+    <Platforms>AnyCPU</Platforms>
+  </PropertyGroup>
+
+  <!-- Map config suffix → Revit version -->
+  <PropertyGroup>
+    <RevitVersion Condition="$(Configuration.EndsWith('-2022'))">2022</RevitVersion>
+    <RevitVersion Condition="$(Configuration.EndsWith('-2023'))">2023</RevitVersion>
+    <RevitVersion Condition="$(Configuration.EndsWith('-2024'))">2024</RevitVersion>
+    <RevitVersion Condition="$(Configuration.EndsWith('-2025'))">2025</RevitVersion>
+    <RevitVersion Condition="$(Configuration.EndsWith('-2026'))">2026</RevitVersion>
+    <RevitVersion Condition="$(Configuration.EndsWith('-2027'))">2027</RevitVersion>
+  </PropertyGroup>
+
+  <!-- Debug vs Release flags -->
+  <PropertyGroup Condition="$(Configuration.StartsWith('Debug'))">
+    <Optimize>false</Optimize>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <DefineConstants>$(DefineConstants);DEBUG;TRACE</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="$(Configuration.StartsWith('Release'))">
+    <Optimize>true</Optimize>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>portable</DebugType>
+    <DefineConstants>$(DefineConstants);TRACE</DefineConstants>
+  </PropertyGroup>
+
+  <!-- ============================================================ -->
+  <!-- Phân loại project theo MSBuildProjectName để chọn framework    -->
+  <!-- ============================================================ -->
+  <PropertyGroup>
+    <_IsServer>false</_IsServer>
+    <_IsServer Condition="$(MSBuildProjectName.Contains('.Server'))">true</_IsServer>
+
+    <_IsContracts>false</_IsContracts>
+    <_IsContracts Condition="$(MSBuildProjectName.EndsWith('.Contracts'))">true</_IsContracts>
+
+    <_IsTests>false</_IsTests>
+    <_IsTests Condition="$(MSBuildProjectName.EndsWith('.Tests')) Or $(MSBuildProjectName.EndsWith('.IntegrationTests'))">true</_IsTests>
+
+    <_IsInstaller>false</_IsInstaller>
+    <_IsInstaller Condition="$(MSBuildProjectName.EndsWith('.Installer'))">true</_IsInstaller>
+
+    <_IsClient>true</_IsClient>
+    <_IsClient Condition="'$(_IsServer)' == 'true' Or '$(_IsContracts)' == 'true' Or '$(_IsTests)' == 'true' Or '$(_IsInstaller)' == 'true'">false</_IsClient>
+  </PropertyGroup>
+
+  <!-- ============================================================ -->
+  <!-- CLIENT projects (Shell, Common, features/*)                    -->
+  <!-- 2022-2024: net48, REVIT_NET48 + REVIT_INT_ID                   -->
+  <!-- 2025-2027: net8.0-windows, REVIT_NET8 + REVIT_LONG_ID          -->
+  <!-- ============================================================ -->
+  <PropertyGroup Condition="'$(_IsClient)' == 'true' And ('$(RevitVersion)' == '2022' Or '$(RevitVersion)' == '2023' Or '$(RevitVersion)' == '2024')">
+    <TargetFramework>net48</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <DefineConstants>$(DefineConstants);REVIT_NET48;REVIT_INT_ID;REVIT_$(RevitVersion)</DefineConstants>
+  </PropertyGroup>
+
+  <!-- Framework references cho net48 (HttpClient, ProtectedData, ...) — net8 đã built-in -->
+  <ItemGroup Condition="'$(_IsClient)' == 'true' And ('$(RevitVersion)' == '2022' Or '$(RevitVersion)' == '2023' Or '$(RevitVersion)' == '2024')">
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Security" />
+  </ItemGroup>
+
+  <PropertyGroup Condition="'$(_IsClient)' == 'true' And ('$(RevitVersion)' == '2025' Or '$(RevitVersion)' == '2026' Or '$(RevitVersion)' == '2027')">
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <DefineConstants>$(DefineConstants);REVIT_NET8;REVIT_LONG_ID;REVIT_$(RevitVersion)</DefineConstants>
+  </PropertyGroup>
+
+  <!-- ============================================================ -->
+  <!-- SERVER projects → net8.0 cố định, không phụ thuộc RevitVersion -->
+  <!-- ============================================================ -->
+  <PropertyGroup Condition="'$(_IsServer)' == 'true'">
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+
+  <!-- ============================================================ -->
+  <!-- CONTRACTS → .NET Standard 2.0 (compatible cả net48 và net8)    -->
+  <!-- ============================================================ -->
+  <PropertyGroup Condition="'$(_IsContracts)' == 'true'">
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <!-- ============================================================ -->
+  <!-- TESTS → net8.0                                                  -->
+  <!-- ============================================================ -->
+  <PropertyGroup Condition="'$(_IsTests)' == 'true'">
+    <TargetFramework>net8.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <!-- ============================================================ -->
+  <!-- Output path — tách theo config để build nhiều version song song -->
+  <!-- ============================================================ -->
+  <PropertyGroup>
+    <BaseOutputPath>$(MSBuildProjectDirectory)\bin\</BaseOutputPath>
+    <BaseIntermediateOutputPath>$(MSBuildProjectDirectory)\obj\</BaseIntermediateOutputPath>
+    <OutputPath>$(BaseOutputPath)$(Configuration)\</OutputPath>
+    <IntermediateOutputPath>$(BaseIntermediateOutputPath)$(Configuration)\</IntermediateOutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <!-- ============================================================ -->
+  <!-- Revit API references — chỉ cho Client project, resolve theo    -->
+  <!-- RevitVersion. Ưu tiên Program Files (máy có Revit cài thật)    -->
+  <!-- → fallback tools/revit-stubs/{version}/ (CI, máy không có Revit)-->
+  <!-- ============================================================ -->
+  <ItemGroup Condition="'$(_IsClient)' == 'true' And '$(RevitVersion)' != ''">
+    <Reference Include="RevitAPI">
+      <HintPath Condition="Exists('C:\Program Files\Autodesk\Revit $(RevitVersion)\RevitAPI.dll')">C:\Program Files\Autodesk\Revit $(RevitVersion)\RevitAPI.dll</HintPath>
+      <HintPath Condition="!Exists('C:\Program Files\Autodesk\Revit $(RevitVersion)\RevitAPI.dll')">$(MSBuildThisFileDirectory)tools\revit-stubs\$(RevitVersion)\RevitAPI.dll</HintPath>
+      <Private>false</Private>
+      <SpecificVersion>false</SpecificVersion>
+    </Reference>
+    <Reference Include="RevitAPIUI">
+      <HintPath Condition="Exists('C:\Program Files\Autodesk\Revit $(RevitVersion)\RevitAPIUI.dll')">C:\Program Files\Autodesk\Revit $(RevitVersion)\RevitAPIUI.dll</HintPath>
+      <HintPath Condition="!Exists('C:\Program Files\Autodesk\Revit $(RevitVersion)\RevitAPIUI.dll')">$(MSBuildThisFileDirectory)tools\revit-stubs\$(RevitVersion)\RevitAPIUI.dll</HintPath>
+      <Private>false</Private>
+      <SpecificVersion>false</SpecificVersion>
+    </Reference>
+    <Reference Include="AdWindows">
+      <HintPath Condition="Exists('C:\Program Files\Autodesk\Revit $(RevitVersion)\AdWindows.dll')">C:\Program Files\Autodesk\Revit $(RevitVersion)\AdWindows.dll</HintPath>
+      <HintPath Condition="!Exists('C:\Program Files\Autodesk\Revit $(RevitVersion)\AdWindows.dll')">$(MSBuildThisFileDirectory)tools\revit-stubs\$(RevitVersion)\AdWindows.dll</HintPath>
+      <Private>false</Private>
+      <SpecificVersion>false</SpecificVersion>
+    </Reference>
+  </ItemGroup>
+
+  <!-- ============================================================ -->
+  <!-- Validation: nếu là client mà RevitVersion rỗng → fail sớm      -->
+  <!-- ============================================================ -->
+  <Target Name="_ValidateClientHasRevitVersion" BeforeTargets="CoreCompile" Condition="'$(_IsClient)' == 'true' And '$(RevitVersion)' == ''">
+    <Error Text="Client project '$(MSBuildProjectName)' yêu cầu chọn config Debug-{2022..2027} hoặc Release-{2022..2027}. Configuration hiện tại: '$(Configuration)'." />
+  </Target>
+
+</Project>

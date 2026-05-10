@@ -1,0 +1,58 @@
+# MEPAuto nginx site — variant "nginx system-level" (docker-compose.system-nginx.yml).
+# MEPAuto API container chạy ở 127.0.0.1:8081 (port 8081 tránh conflict EPAuto:8080).
+#
+# Cài vào VPS:
+#   sudo cp nginx-system-site.conf.template /etc/nginx/sites-available/mepauto-api.conf
+#   # Sửa domain api.mepauto.local → domain thực tế
+#   sudo sed -i 's/api.mepauto.local/api.yourcompany.com/g' /etc/nginx/sites-available/mepauto-api.conf
+#   sudo ln -s /etc/nginx/sites-available/mepauto-api.conf /etc/nginx/sites-enabled/
+#   sudo nginx -t && sudo systemctl reload nginx
+
+limit_req_zone $binary_remote_addr zone=mepauto_auth_login:10m rate=10r/m;
+
+server {
+    listen 80;
+    server_name api.mepauto.local;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl http2;
+    server_name api.mepauto.local;
+
+    ssl_certificate     /etc/letsencrypt/live/api.mepauto.local/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/api.mepauto.local/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options nosniff always;
+    add_header X-Frame-Options DENY always;
+
+    location = /api/v1/auth/login {
+        limit_req zone=mepauto_auth_login burst=5 nodelay;
+        proxy_pass http://127.0.0.1:8081;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:8081;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+    }
+}
