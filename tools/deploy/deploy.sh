@@ -52,11 +52,12 @@ if [ ! -d /var/mepauto-data ]; then
 fi
 
 # Build context = repo root (../..)
-echo "==> Build image"
-docker compose -f "$COMPOSE_FILE" --env-file .env build
+# -p mepauto: explicit project name. KHÔNG dùng default "deploy" (sẽ conflict EPAuto/EFAuto cùng path tools/deploy/).
+echo "==> Build image (project: mepauto)"
+docker compose -p mepauto -f "$COMPOSE_FILE" --env-file .env build
 
-echo "==> Up service"
-docker compose -f "$COMPOSE_FILE" --env-file .env up -d
+echo "==> Up service (project: mepauto)"
+docker compose -p mepauto -f "$COMPOSE_FILE" --env-file .env up -d
 
 echo "==> Wait 5s for healthcheck"
 sleep 5
@@ -71,13 +72,13 @@ if curl --fail --silent --max-time 5 "http://127.0.0.1:${HEALTH_PORT}/health" > 
     echo "    OK"
 else
     echo "    FAIL — check log"
-    docker compose -f "$COMPOSE_FILE" logs api | tail -50
+    docker compose -p mepauto -f "$COMPOSE_FILE" logs api | tail -50
     exit 1
 fi
 
 echo ""
 echo "Deploy DONE. Service status:"
-docker compose -f "$COMPOSE_FILE" ps
+docker compose -p mepauto -f "$COMPOSE_FILE" ps
 
 echo ""
 echo "Verify từ ngoài:"

@@ -5,6 +5,8 @@
 #
 # Build context = repo root (cd ../.., docker compose -f tools/deploy/docker-compose.yml ...)
 
+name: mepauto  # Explicit project name — tránh conflict với EPAuto cùng dùng /tools/deploy/.
+
 services:
   api:
     build:

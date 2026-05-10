@@ -10,6 +10,8 @@
 #
 # HOST_BIND mặc định 0.0.0.0 (cho phép truy cập từ ngoài). Set HOST_BIND=127.0.0.1 trong .env để giới hạn localhost.
 
+name: mepauto  # Explicit project name — KHÔNG để default "deploy" (sẽ conflict với EPAuto cùng dùng /tools/deploy/).
+
 services:
   api:
     build:
