@@ -1,10 +1,10 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
      xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
      xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
 
   <!--
-    MEPAuto MSI installer — perUser only. Ship 6 version Revit DLL + 6 .addin manifest.
+    MEPAuto MSI installer â€” perUser only. Ship 6 version Revit DLL + 6 .addin manifest.
 
     Build flow:
       1. dotnet build MEPAuto.sln -c Release-2022..2027  (sinh bin/Release-{ver}/)
@@ -12,32 +12,32 @@
 
     Output: MEPAuto-Setup.msi
 
-    Cài đặt mặc định perUser, KHÔNG cần admin:
-      DLL    → %LocalAppData%\MEPAuto\{2022..2027}\MEPAuto.Client.Shell.dll
-      .addin → %AppData%\Autodesk\Revit\Addins\{2022..2027}\MEPAuto-{ver}.addin
-    Path trong <Assembly> của .addin được patch runtime qua util:XmlFile.
+    CÃ i Ä‘áº·t máº·c Ä‘á»‹nh perUser, KHÃ”NG cáº§n admin:
+      DLL    â†’ %LocalAppData%\MEPAuto\{2022..2027}\MEPAuto.Client.Shell.dll
+      .addin â†’ %AppData%\Autodesk\Revit\Addins\{2022..2027}\MEPAuto-{ver}.addin
+    Path trong <Assembly> cá»§a .addin Ä‘Æ°á»£c patch runtime qua util:XmlFile.
   -->
 
   <Package
     Name="MEPAuto Revit Add-in"
     Manufacturer="MEPAuto"
     Version="$(var.ProductVersion)"
-    UpgradeCode="B2C3D4E5-1000-4002-8002-000000000200"
+    UpgradeCode="C3D4E5F6-1000-4003-8003-000000000300"
     InstallerVersion="500"
     Compressed="yes"
     Scope="perUser"
     Codepage="65001"
     Language="1066">
 
-    <MajorUpgrade DowngradeErrorMessage="Phiên bản MEPAuto mới hơn đã được cài. Hãy gỡ trước khi cài bản này." />
+    <MajorUpgrade DowngradeErrorMessage="PhiÃªn báº£n MEPAuto má»›i hÆ¡n Ä‘Ã£ Ä‘Æ°á»£c cÃ i. HÃ£y gá»¡ trÆ°á»›c khi cÃ i báº£n nÃ y." />
     <MediaTemplate EmbedCab="yes" />
 
     <!-- ===== ARP (Add/Remove Programs) info ===== -->
     <Property Id="ARPHELPLINK" Value="https://github.com/MEP-Automation/MEPAuto/issues" />
     <Property Id="ARPURLINFOABOUT" Value="https://github.com/MEP-Automation/MEPAuto" />
-    <Property Id="ARPCOMMENTS" Value="MEPAuto - bộ tool MEP cho Revit (đa version 2022-2027)." />
+    <Property Id="ARPCOMMENTS" Value="MEPAuto - bá»™ tool MEP cho Revit (Ä‘a version 2022-2027)." />
 
-    <!-- ===== Detect Revit version đã cài ===== -->
+    <!-- ===== Detect Revit version Ä‘Ã£ cÃ i ===== -->
     <Property Id="FORCE_ALL_VERSIONS" Secure="yes" />
 
     <Property Id="REVIT_2022_INSTALLED">
@@ -102,7 +102,7 @@
       </Directory>
     </StandardDirectory>
 
-    <!-- ===== Manifest components — patch <Assembly> path runtime ===== -->
+    <!-- ===== Manifest components â€” patch <Assembly> path runtime ===== -->
     <Component Id="Manifest_2022" Directory="ADDIN_USER_2022" Guid="*">
       <File Id="ManifestFile_2022" Source="$(var.ManifestDir)\MEPAuto-2022.addin" KeyPath="yes" />
       <util:XmlFile Id="PatchAssembly_2022" File="[#ManifestFile_2022]"
@@ -176,7 +176,7 @@
 
     </Feature>
 
-    <!-- UI: Minimal flow (Welcome → License → Progress) -->
+    <!-- UI: Minimal flow (Welcome â†’ License â†’ Progress) -->
     <ui:WixUI Id="WixUI_Minimal" />
 
   </Package>
