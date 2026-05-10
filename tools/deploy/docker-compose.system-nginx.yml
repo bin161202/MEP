@@ -1,11 +1,14 @@
-# MEPAuto VPS deploy — variant "nginx system-level" (DEFAULT cho shared VPS với EPAuto).
+# MEPAuto VPS deploy — variant "standalone API on port 8081" (DEFAULT cho shared VPS).
 #
-# Dùng khi VPS đã có nginx system serving EPAuto (hoặc site khác) → KHÔNG di dời.
-# Chỉ chạy API container, expose 127.0.0.1:8081 → nginx system proxy_pass tới.
-# (Port 8081 vì EPAuto đã chiếm 8080 trên VPS này.)
+# VPS này đã có:
+#   - epauto-nginx (container) chiếm host port 80/443
+#   - epauto-api (container, port 8080 internal qua epauto-nginx)
+#   - efauto-api (container, host port 5001 → 8080)
 #
-# Site config nginx system: tools/deploy/nginx-system-site.conf.template
-# (LEAD copy + sửa domain + đặt vào /etc/nginx/sites-available/, ln sites-enabled, reload nginx)
+# MEPAuto bind host port 8081 → 8080 (giống pattern efauto-api). KHÔNG cần nginx system.
+# Sau này muốn TLS: thêm reverse proxy ở mức cao hơn hoặc subdomain qua epauto-nginx.
+#
+# HOST_BIND mặc định 0.0.0.0 (cho phép truy cập từ ngoài). Set HOST_BIND=127.0.0.1 trong .env để giới hạn localhost.
 
 services:
   api:
@@ -25,5 +28,5 @@ services:
       - /var/mepauto-data:/var/mepauto-data
     restart: unless-stopped
     ports:
-      # Bind 127.0.0.1:8081 → nginx system proxy_pass tới (port 8081 để tránh conflict với EPAuto:8080)
-      - "127.0.0.1:8081:8080"
+      # Bind ${HOST_BIND}:8081 → container 8080. Port 8081 vì 8080 đã EPAuto chiếm internal.
+      - "${HOST_BIND:-0.0.0.0}:8081:8080"
