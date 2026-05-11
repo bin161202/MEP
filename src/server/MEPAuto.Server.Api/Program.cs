@@ -1,6 +1,7 @@
 using System.IO;
 using System.Text;
 using MEPAuto.Server.Api.Auth;
+using MEPAuto.Server.Api.Commands;
 using MEPAuto.Server.Api.Middleware;
 using MEPAuto.Server.Core.Abstractions;
 using MEPAuto.Server.Core.Auth;
@@ -9,6 +10,13 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using Serilog.Formatting.Compact;
+
+// CLI subcommand mode — intercept trước khi build web host.
+// Hiện hỗ trợ: seed-user (dev local, không động VPS).
+if (args.Length > 0 && args[0] == "seed-user")
+{
+    return await SeedUserCommand.RunAsync(args.Skip(1).ToArray());
+}
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -126,3 +134,4 @@ app.UseMiddleware<AuditMiddleware>();
 app.MapControllers();
 
 app.Run();
+return 0;

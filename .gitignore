@@ -88,3 +88,6 @@ tools/deploy/.vps-secrets
 ## DPAPI cached JWT (lỡ commit là leak)
 *.dat
 jwt.dat
+
+## Dev local DataDir (users.json + licenses.json dev — KHÔNG commit, chứa hash password)
+src/server/MEPAuto.Server.Api/data-dev/

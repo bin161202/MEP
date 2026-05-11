@@ -43,7 +43,7 @@ namespace MEPAuto.Client.Common.Auth
                 state.Heartbeat.Start();
                 return true;
             }
-            var dialog = new LoginDialog(state.Server, state.Cache);
+            var dialog = new LoginDialog(state.Server, state.Cache, state.Config.ServerBaseUrl);
             var result = dialog.ShowDialog();
             if (result == true && dialog.LoggedIn)
             {

@@ -22,13 +22,13 @@ namespace MEPAuto.Client.Common.Auth
         public bool LoggedIn { get; private set; }
         public JwtCache.Payload? Token { get; private set; }
 
-        public LoginDialog(IServerProxy server, JwtCache cache)
+        public LoginDialog(IServerProxy server, JwtCache cache, string serverBaseUrl = "")
         {
             _server = server;
             _cache = cache;
 
             Title = "MEPAuto — Đăng nhập";
-            Width = 400; Height = 280;
+            Width = 400; Height = 300;
             WindowStartupLocation = WindowStartupLocation.CenterScreen;
             ResizeMode = ResizeMode.NoResize;
 
@@ -75,6 +75,22 @@ namespace MEPAuto.Client.Common.Auth
             };
             _loginButton.Click += async (s, e) => await OnLoginClick();
             Grid.SetRow(_loginButton, 6); grid.Children.Add(_loginButton);
+
+            // Footer hiển thị ServerBaseUrl đang dùng — giúp member phát hiện trỏ sai
+            // (vd `localhost:5000` thay vì VPS production). Xem ERR-028.
+            if (!string.IsNullOrWhiteSpace(serverBaseUrl))
+            {
+                var serverInfo = new TextBlock
+                {
+                    Text = "Server: " + serverBaseUrl,
+                    Foreground = System.Windows.Media.Brushes.Gray,
+                    FontSize = 11,
+                    Margin = new Thickness(0, 8, 0, 0),
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Center,
+                };
+                Grid.SetRow(serverInfo, 6); grid.Children.Add(serverInfo);
+            }
 
             Content = grid;
             Loaded += (s, e) => _emailBox.Focus();

@@ -10,6 +10,13 @@ Cẩm nang vòng lặp dev nhanh **15-30s/iteration** (so với 1-2 phút restar
 - ✅ MSI cài hoặc DLL copy thủ công (xem `tools/deploy/DEPLOY-WALKTHROUGH.md` Step 7)
 - ✅ RevitAddinManager (RAM) cài cho mỗi version Revit dùng
 
+
+## Khi dev feature mới chưa push lên VPS
+
+Server VPS chưa có endpoint feature mới → click button bị 404. Đừng push code chỉ để test —
+chạy server **trên máy mình** thay VPS. Setup 5 phút, không cần SSH VPS:
+
+👉 Xem **[DEV-LOCAL-SETUP.md](DEV-LOCAL-SETUP.md)** — `dotnet run -- seed-user` + cấu hình client trỏ local.
 ## 7 bước daily loop
 
 ```
