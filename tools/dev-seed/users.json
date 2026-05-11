@@ -1,0 +1,11 @@
+[
+  {
+    "UserId": "u-0a6e3052",
+    "Email": "lead@mepauto.test",
+    "PasswordHash": "$2b$11$/M1V6jdL5PdudzVb3P9fX.QfynZ4OqnJzPhLyoXfosrxGQPICaq5y",
+    "DisplayName": "LEAD",
+    "Disabled": false,
+    "CreatedAt": "2026-05-10T08:45:39Z",
+    "LastLoginAt": "2026-05-10T08:48:07.2416422Z"
+  }
+]

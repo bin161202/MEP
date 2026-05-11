@@ -12,34 +12,9 @@ Khi member tạo feature mới (vd `ToiletStackConnect`):
 
 → Chạy server **trên máy mình** với code feature mới + trỏ client về local → test ngay 15-30s/iteration.
 
-## Setup 1 lần (~5 phút)
+## Setup 1 lần (~2 phút)
 
-### Bước 1 — Seed user dev local
-
-```powershell
-cd "d:\MEP Add-in\Plumbing\MEPAuto\src\server\MEPAuto.Server.Api"
-$env:ASPNETCORE_ENVIRONMENT="Development"
-dotnet run -c Debug-2024 -- seed-user `
-    --email "minhduy@local.dev" `
-    --password "Test123!" `
-    --features "helloworld.basic,drainurinal.basic" `
-    --display "Minh Duy (dev)"
-```
-
-Output mong đợi:
-```
-CREATED user minhduy@local.dev (UserId=u-xxxxxxxx)
-LICENSE minhduy@local.dev → [helloworld.basic, drainurinal.basic]
-OK — wrote to D:\...\MEPAuto.Server.Api\data-dev
-```
-
-Sinh ra:
-- `data-dev/users.json` — chứa user dev với hash BCrypt password
-- `data-dev/licenses.json` — license map
-
-**Folder `data-dev/` ở local, không commit (đã .gitignore). Không liên quan VPS.**
-
-### Bước 2 — Cấu hình client trỏ về local
+### Bước 1 — Cấu hình client trỏ về local
 
 Đóng Revit. Mở `%LocalAppData%\MEPAuto\config.json`, sửa:
 
@@ -66,26 +41,35 @@ Now listening on: http://localhost:5050
 Application started.
 ```
 
-### Bước 2 — Khi thêm feature mới: cấp license cho user dev
+**Lần đầu chạy** server sẽ tự copy users + licenses từ `tools/dev-seed/` xuống `data-dev/` —
+login bằng **cùng credentials VPS production** (không cần tạo user dev riêng):
+
+```
+AutoSeedDevUser: đã copy seed từ ...\tools\dev-seed → ...\data-dev.
+Login với credentials VPS production.
+```
+
+### Bước 2 — Khi thêm feature mới: cấp license cho user
+
+Trong terminal khác (server vẫn đang chạy ở terminal 1):
 
 ```powershell
 cd "d:\MEP Add-in\Plumbing\MEPAuto\src\server\MEPAuto.Server.Api"
 $env:ASPNETCORE_ENVIRONMENT="Development"
 dotnet run -c Debug-2024 -- seed-user `
-    --email "minhduy@local.dev" `
-    --password "Test123!" `
+    --email "minhduyforbusiness@gmail.com" `
+    --password "DnBIMcore21@CLC" `
     --features "helloworld.basic,drainurinal.basic,toiletstackconnect.basic"
 ```
 
-Lưu ý: chạy lại CLI cho **CÙNG email** = UPDATE (giữ UserId, reset password + features). Không tạo user trùng.
+Chạy lại CLI cho **CÙNG email** = UPDATE (giữ UserId, password + features mới). Không tạo trùng.
 
 Restart server (Ctrl+C terminal 1 → chạy lại) để load license mới.
 
 ### Bước 3 — Test feature trong Revit
 
-Mở Revit → click button feature → dialog login → đăng nhập:
-- Email: `minhduy@local.dev`
-- Password: `Test123!`
+Mở Revit → click button feature → dialog login → footer ghi `Server: http://localhost:5050`
+(để bạn biết đang trỏ local, không phải VPS). Đăng nhập bằng credentials VPS production.
 
 Click button → server local đáp ứng (có code feature mới) → test OK.
 
@@ -120,14 +104,17 @@ Exit code: `0` = OK, `2` = thiếu/sai argument.
 |---|---|---|
 | `dotnet run` báo `Address already in use` | Port 5050 bị process khác chiếm | `Get-NetTCPConnection -LocalPort 5050` tìm PID → `Stop-Process` |
 | Server start nhưng `/health` lỗi `Jwt:SigningKey không có` | `ASPNETCORE_ENVIRONMENT` chưa set Development | `$env:ASPNETCORE_ENVIRONMENT="Development"` trước `dotnet run` |
-| Login 401 `Invalid email or password` | Hash chưa khớp / chưa seed user | Chạy lại `dotnet run -- seed-user` |
+| Login 401 `Invalid email or password` | Password VPS đổi sau khi seed local → hash cũ | Xóa `data-dev/` → restart server (auto-seed lại) HOẶC chạy `seed-user` với password mới |
+| Server log "không tìm thấy tools/dev-seed/" | Repo thiếu folder seed | `git pull` lấy commit mới; hoặc chạy `seed-user` thủ công |
 | Click feature 404 | Endpoint Controller server-side viết sai route | Check `[Route("api/v1/{featurename}")]` trong `{Feature}Controller.cs` |
 | Click feature 403 | License key trong `licenses.json` không khớp key check trong Controller | Đọc Controller xem key gì, seed lại với đúng key |
 | Switch VPS lại bị `localhost:5050` | Quên sửa `%LocalAppData%\MEPAuto\config.json` | Edit lại file |
 
 ## Bảo mật
 
-- `data-dev/users.json` và `licenses.json` ở **máy local**, đã `.gitignore` → không commit lên repo.
-- Password hash BCrypt cost=11 — không lưu plain text.
-- JWT signing key dev = `DEV_KEY_NOT_FOR_PROD_...` trong `appsettings.Development.json` — **KHÁC** key production trên VPS.
-- Token sinh ra ở local không valid trên VPS (issuer/audience khác).
+- `data-dev/users.json` + `licenses.json` ở **máy local**, đã `.gitignore` → không commit lên repo.
+- `tools/dev-seed/users.json` + `licenses.json` **CÓ commit** (để member git pull về là có user sẵn).
+  Chứa **hash BCrypt cost=11** — không plaintext. Brute-force unfeasible với password strong.
+- Khi LEAD đổi password VPS hoặc thêm user → pull lại `tools/dev-seed/` từ VPS + commit để team sync.
+- JWT signing key dev = `DEV_KEY_NOT_FOR_PROD_...` trong `appsettings.Development.json` — **KHÁC** key production VPS.
+- Token sinh ra ở local KHÔNG valid trên VPS (issuer/audience khác) → isolation an toàn.

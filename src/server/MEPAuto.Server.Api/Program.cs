@@ -118,6 +118,11 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+// ---- Dev auto-seed user (chỉ chạy ở Development mode) ----
+// Copy users.json + licenses.json từ tools/dev-seed/ xuống DataDir nếu chưa có.
+// Member dùng cùng credentials VPS production để login local.
+AutoSeedDevUser.RunIfNeeded(dataDir, app.Environment, app.Logger);
+
 // ---- Pipeline ----
 if (app.Environment.IsDevelopment())
 {
