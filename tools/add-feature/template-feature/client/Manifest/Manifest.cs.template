@@ -1,0 +1,18 @@
+using System;
+using MEPAuto.Contracts.Manifests;
+using MEPAuto.{{Feature}}.Commands;
+
+namespace MEPAuto.{{Feature}}.Manifest
+{
+    public class {{Feature}}Manifest : IFeatureManifest
+    {
+        public string Name => "{{Feature}}";
+        public string DisplayName => "{{DisplayName}}";
+        public string ServerEndpoint => "/api/v1/{{FeatureLower}}/execute";
+        public string LicenseFeature => "{{FeatureLower}}.basic";
+        public string PanelGroup => "{{Panel}}";
+        public int Order => {{Order}};
+        public string IconResourcePath => "Icons/{{FeatureLower}}.png";
+        public Type CommandType => typeof({{Feature}}Command);
+    }
+}

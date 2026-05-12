@@ -1,0 +1,17 @@
+namespace MEPAuto.Server.{{Feature}}.Domain
+{
+    /// <summary>
+    /// Domain logic cho {{Feature}} — chỗ chứa thuật toán "trí tuệ" của feature.
+    /// IP nặng → giữ ở server-side, KHÔNG expose ra Client.
+    /// Pure function, dễ unit test (không phụ thuộc DI/IO).
+    /// </summary>
+    public static class {{Feature}}Logic
+    {
+        // TODO: implement core algorithm.
+        // Ví dụ: tính toán positions, validate input, generate plan, build greeting.
+        public static string Run(string input)
+        {
+            return $"TODO {{Feature}}Logic.Run({input})";
+        }
+    }
+}

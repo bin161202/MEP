@@ -1,0 +1,40 @@
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+
+namespace MEPAuto.{{Feature}}.ViewModels
+{
+    /// <summary>
+    /// ViewModel cho {{Feature}}Window. Manual INotifyPropertyChanged (KHÔNG dùng MVVM toolkit
+    /// để giảm dependency — feature phức tạp hơn có thể migrate sau khi LEAD review).
+    /// </summary>
+    /// <remarks>
+    /// Quy ước:
+    /// - Mọi state UI binding nằm ở đây, View chỉ wire button click.
+    /// - <see cref="Validate"/> gọi từ View khi user bấm OK; trả false → dialog KHÔNG đóng.
+    /// - KHÔNG gọi RevitAPI / ServerProxy ở VM — đó là việc của Command sau khi dialog đóng OK.
+    /// </remarks>
+    public class {{Feature}}WindowViewModel : INotifyPropertyChanged
+    {
+        private string _pattern = "EQ-{0:D3}";
+        public string Pattern
+        {
+            get => _pattern;
+            set { if (_pattern != value) { _pattern = value; OnPropertyChanged(); } }
+        }
+
+        public bool Validate(out string error)
+        {
+            if (string.IsNullOrWhiteSpace(Pattern))
+            {
+                error = "Pattern không được để trống.";
+                return false;
+            }
+            error = "";
+            return true;
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged([CallerMemberName] string? name = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
+}

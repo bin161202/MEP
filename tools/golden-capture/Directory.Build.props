@@ -1,0 +1,4 @@
+<Project>
+  <!-- Empty file để block inheritance từ MEPAuto/Directory.Build.props.
+       Tool one-off net8.0 console KHÔNG cần multi-version Revit config. -->
+</Project>

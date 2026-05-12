@@ -1,0 +1,32 @@
+using System.Windows;
+using MEPAuto.{{Feature}}.ViewModels;
+
+namespace MEPAuto.{{Feature}}.Views
+{
+    /// <summary>
+    /// View thuần cho feature {{Feature}}. KHÔNG đặt business logic ở đây — mọi state + validate ở
+    /// <see cref="{{Feature}}WindowViewModel"/>. Code-behind chỉ wire OK button → validate → DialogResult.
+    /// </summary>
+    public partial class {{Feature}}Window : Window
+    {
+        public {{Feature}}WindowViewModel ViewModel { get; }
+
+        public {{Feature}}Window({{Feature}}WindowViewModel vm)
+        {
+            InitializeComponent();
+            ViewModel = vm;
+            DataContext = vm;
+        }
+
+        private void Ok_Click(object sender, RoutedEventArgs e)
+        {
+            if (!ViewModel.Validate(out var error))
+            {
+                MessageBox.Show(this, error, "MEPAuto - {{DisplayName}}", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            DialogResult = true;
+            Close();
+        }
+    }
+}

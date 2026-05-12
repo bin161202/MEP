@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>MEPAuto.{{Feature}}</RootNamespace>
+    <AssemblyName>MEPAuto.{{Feature}}</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\shared\MEPAuto.Contracts\MEPAuto.Contracts.csproj" />
+    <ProjectReference Include="..\..\MEPAuto.Client.Common\MEPAuto.Client.Common.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,35 @@
+using System;
+using MEPAuto.Client.Common.Auth;
+using MEPAuto.Client.Common.Contracts;
+using MEPAuto.Contracts.DTOs;
+using MEPAuto.{{Feature}}.Commands;
+
+namespace MEPAuto.{{Feature}}.Contracts
+{
+    /// <summary>
+    /// Contract HEADLESS cho feature {{Feature}}.
+    /// Cho phép luồng nền (AI/CAD-PDF mode) gọi feature mà không cần ribbon click.
+    /// Wrap <see cref="{{Feature}}Command.ExecuteHeadless"/> — KHÔNG duplicate logic.
+    /// </summary>
+    /// <remarks>
+    /// Quy tắc:
+    /// - <c>FeatureName</c> PHẢI khớp <c>{{Feature}}Manifest.Name</c> ("{{Feature}}").
+    /// - KHÔNG show TaskDialog/WPF, KHÔNG PickObject — luồng nền không có UI.
+    /// - <c>ContractRegistry</c> ở Shell tự reflection scan — KHÔNG cần đăng ký thủ công.
+    /// </remarks>
+    public class {{Feature}}Contract : IFeatureContract
+    {
+        public string FeatureName => "{{Feature}}";
+        public Type InputType => typeof({{Feature}}Request);
+
+        public object Execute(IFeatureContext ctx, object input)
+        {
+            if (input is not {{Feature}}Request req)
+                throw new ArgumentException(
+                    $"{{Feature}}Contract.Execute expected {{Feature}}Request, got {input?.GetType().Name ?? "null"}",
+                    nameof(input));
+
+            return {{Feature}}Command.ExecuteHeadless(ctx, req);
+        }
+    }
+}

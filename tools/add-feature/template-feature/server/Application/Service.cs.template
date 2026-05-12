@@ -1,0 +1,42 @@
+using System;
+using System.Security.Claims;
+using System.Threading.Tasks;
+using MEPAuto.Contracts.DTOs;
+using MEPAuto.Server.Core.Abstractions;
+using MEPAuto.Server.{{Feature}}.Domain;
+
+namespace MEPAuto.Server.{{Feature}}.Application
+{
+    /// <summary>
+    /// Orchestration cho {{Feature}}: gọi Domain logic, ghi audit, sinh JobId.
+    /// License đã check ở controller — service KHÔNG check lại.
+    /// </summary>
+    public class {{Feature}}Service
+    {
+        private readonly IAuditLogger _audit;
+        public {{Feature}}Service(IAuditLogger audit) { _audit = audit; }
+
+        public async Task<{{Feature}}Response> Execute({{Feature}}Request req, ClaimsPrincipal user)
+        {
+            // TODO: gọi Domain logic với data từ req.Snapshot
+            var result = {{Feature}}Logic.Run("TODO snapshot input");
+
+            var jobId = Guid.NewGuid().ToString("N");
+            await _audit.Log(user, "{{FeatureLower}}.execute", new { jobId });
+
+            return new {{Feature}}Response
+            {
+                Message = result,
+                JobId = jobId,
+                // TODO: trả thêm field PlanDto cho Client apply (Positions, Renames, ...)
+            };
+        }
+
+        public async Task RecordResult({{Feature}}ResultRequest req, ClaimsPrincipal user)
+        {
+            await _audit.Log(user, "{{FeatureLower}}.result",
+                new { req.JobId, req.Success },
+                req.Success ? "ok" : "fail");
+        }
+    }
+}

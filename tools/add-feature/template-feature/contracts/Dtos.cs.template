@@ -1,0 +1,27 @@
+namespace MEPAuto.Contracts.DTOs
+{
+    public class {{Feature}}SnapshotDto
+    {
+        // TODO: fields user input + Revit probe data Client gửi lên server
+        // Ví dụ: public string LevelName { get; set; } = "";
+        //        public Point3D[] Positions { get; set; } = System.Array.Empty<Point3D>();
+    }
+
+    public class {{Feature}}Request
+    {
+        public {{Feature}}SnapshotDto Snapshot { get; set; } = new {{Feature}}SnapshotDto();
+    }
+
+    public class {{Feature}}Response
+    {
+        public string Message { get; set; } = "";
+        public string JobId { get; set; } = "";
+        // TODO: thêm fields cho PlanDto Client cần để apply (vd Positions[] cho Sprinkler, Renames[] cho Rename)
+    }
+
+    public class {{Feature}}ResultRequest
+    {
+        public string JobId { get; set; } = "";
+        public bool Success { get; set; }
+    }
+}

@@ -1,0 +1,99 @@
+using System.Windows.Interop;
+using Autodesk.Revit.Attributes;
+using Autodesk.Revit.UI;
+using MEPAuto.Client.Common.Auth;
+using MEPAuto.Client.Common.Commands;
+using MEPAuto.Contracts.DTOs;
+using MEPAuto.{{Feature}}.ViewModels;
+using MEPAuto.{{Feature}}.Views;
+
+namespace MEPAuto.{{Feature}}.Commands
+{
+    /// <summary>
+    /// Feature {{Feature}} (WPF dialog) — TODO: mô tả ngắn 1 dòng feature làm gì.
+    /// </summary>
+    /// <remarks>
+    /// Cấu trúc 3 method tách bạch (Plan v3 — chuẩn bị 3 chế độ User/AI/CAD-PDF):
+    ///   - <see cref="RunFeature"/>: User mode. Mở WPF dialog → build input → ExecuteHeadless → show kết quả.
+    ///   - <see cref="ExecuteHeadless"/>: HEADLESS — luồng nền (AI/CAD-PDF) gọi với input đã build sẵn.
+    ///   - <see cref="ShowDialogAndBuildInput"/>: helper riêng User mode.
+    ///
+    /// Flow User mode:
+    ///   1. Tạo VM + Window, set Owner = Revit main window handle để dialog modal đúng với Revit.
+    ///   2. ShowDialog() — false (user Cancel) → Result.Cancelled, KHÔNG gọi server.
+    ///   3. Lấy state từ VM → build Request → ExecuteHeadless.
+    ///
+    /// Lưu ý (xem master plan v2 Phần VIII Lessons learned):
+    /// - [Transaction] PHẢI trên class concrete (KHÔNG inherit từ BaseFeatureCommand) — Lesson 1.
+    /// - .GetAwaiter().GetResult() OK vì ServerProxy đã ConfigureAwait(false) bên trong — Lesson 2.
+    /// </remarks>
+    [Transaction(TransactionMode.Manual)]
+    [Regeneration(RegenerationOption.Manual)]
+    public class {{Feature}}Command : BaseFeatureCommand
+    {
+        // ========== Cửa cho USER bấm ribbon ==========
+        protected override Result RunFeature(IFeatureContext ctx)
+        {
+            var input = ShowDialogAndBuildInput(ctx);
+            if (input == null) return Result.Cancelled;
+
+            var output = ExecuteHeadless(ctx, input);
+
+            ShowResult(output);
+            return Result.Succeeded;
+        }
+
+        // ========== Cửa HEADLESS — gọi được từ luồng nền (AI/CAD-PDF mode) ==========
+        /// <summary>
+        /// Logic CHÍNH — gọi server + apply Revit + audit. KHÔNG dialog, KHÔNG pick.
+        /// Khi luồng nền gọi (AI/CAD-PDF), input đã có sẵn từ server → bỏ qua bước dialog.
+        /// </summary>
+        public static {{Feature}}Response ExecuteHeadless(IFeatureContext ctx, {{Feature}}Request input)
+        {
+            var output = ctx.Server.Post<{{Feature}}Response>(
+                "/api/v1/{{FeatureLower}}/execute", input).GetAwaiter().GetResult();
+
+            // TODO: apply ops trong transaction nếu feature modify Revit
+            // ctx.RevitSvc.RunInTransaction("{{Feature}}", () => {
+            //     foreach (var item in output.Items)
+            //         ctx.RevitSvc.SetParameter(item.Id, "Mark", item.NewValue);
+            // });
+
+            ctx.Server.Post(
+                "/api/v1/{{FeatureLower}}/result",
+                new {{Feature}}ResultRequest { JobId = output.JobId, Success = true })
+                .GetAwaiter().GetResult();
+
+            return output;
+        }
+
+        // ========== Helper riêng cho User mode ==========
+        private static {{Feature}}Request? ShowDialogAndBuildInput(IFeatureContext ctx)
+        {
+            // 1. Hiện WPF dialog input
+            var vm = new {{Feature}}WindowViewModel();
+            var window = new {{Feature}}Window(vm);
+            new WindowInteropHelper(window).Owner = ctx.UiApp.MainWindowHandle;
+
+            if (window.ShowDialog() != true)
+                return null;
+
+            // 2. Build snapshot từ ctx.RevitSvc.Get*() nếu feature cần probe Revit
+            var snapshot = new {{Feature}}SnapshotDto
+            {
+                // TODO: fill fields
+            };
+
+            return new {{Feature}}Request
+            {
+                Snapshot = snapshot,
+                // TODO: map field từ vm (vd: Pattern = vm.Pattern)
+            };
+        }
+
+        private static void ShowResult({{Feature}}Response output)
+        {
+            TaskDialog.Show("MEPAuto - {{DisplayName}}", string.IsNullOrEmpty(output.Message) ? "Done." : output.Message);
+        }
+    }
+}

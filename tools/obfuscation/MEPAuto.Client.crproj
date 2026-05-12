@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ConfuserEx 2 (mkaring fork) project SAMPLE — chỉ để reference + IDE preview.
+  Project THỰC dùng cho build sinh runtime bởi Run-Obfuscate.ps1 (không đọc file này).
+
+  Lý do generate runtime: schema mkaring strict — `<rule>` PHẢI nằm trong `<module>`,
+  không cho phép ở project root level. Mỗi version Revit có set DLL khác nhau (net48 vs net8)
+  nên crproj phải sinh per-version với module list khác nhau.
+
+  Format chuẩn (theo log fail v0.1.0-rc1 + mkaring schema):
+
+    <project outputDir="..." baseDir="..." xmlns="http://confuser.codeplex.com">
+      <probePath>...</probePath>
+      <module path="X.dll">
+        <rule pattern="true" preset="normal">
+          <protection id="..." />
+        </rule>
+        <rule pattern="inherits('...')" inherit="true">
+          <protection id="rename" action="remove" />
+        </rule>
+      </module>
+    </project>
+-->
+<project outputDir="output" baseDir="." xmlns="http://confuser.codeplex.com">
+  <probePath>.</probePath>
+  <module path="MEPAuto.Client.Shell.dll">
+    <rule pattern="true" preset="normal" inherit="false">
+      <protection id="rename" />
+      <protection id="ctrl flow" />
+      <protection id="ref proxy" />
+      <protection id="constants" />
+      <protection id="invalid metadata" />
+    </rule>
+    <rule pattern="inherits('Autodesk.Revit.UI.IExternalApplication')" inherit="true">
+      <protection id="rename" action="remove" />
+    </rule>
+    <rule pattern="inherits('Autodesk.Revit.UI.IExternalCommand')" inherit="true">
+      <protection id="rename" action="remove" />
+    </rule>
+    <rule pattern="inherits('Autodesk.Revit.UI.IExternalEventHandler')" inherit="true">
+      <protection id="rename" action="remove" />
+    </rule>
+    <rule pattern="namespace('MEPAuto.Contracts')" inherit="true">
+      <protection id="rename" action="remove" />
+    </rule>
+    <rule pattern="is-public() and member-type('property')" inherit="true">
+      <protection id="rename" action="remove" />
+    </rule>
+  </module>
+</project>

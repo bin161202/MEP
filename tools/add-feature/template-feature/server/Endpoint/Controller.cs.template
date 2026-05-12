@@ -1,0 +1,50 @@
+using System.Threading.Tasks;
+using MEPAuto.Contracts.DTOs;
+using MEPAuto.Server.Core.Abstractions;
+using MEPAuto.Server.{{Feature}}.Application;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace MEPAuto.Server.{{Feature}}.Endpoint
+{
+    /// <summary>
+    /// HTTP endpoint /api/v1/{{FeatureLower}}/* cho feature {{Feature}}.
+    /// License check inline — không phụ thuộc Server.Api để tránh circular ref.
+    /// </summary>
+    [ApiController]
+    [Route("api/v1/{{FeatureLower}}")]
+    [Authorize]
+    public class {{Feature}}Controller : ControllerBase
+    {
+        private const string LicenseFeature = "{{FeatureLower}}.basic";
+
+        private readonly {{Feature}}Service _svc;
+        private readonly ILicenseService _license;
+
+        public {{Feature}}Controller({{Feature}}Service svc, ILicenseService license)
+        {
+            _svc = svc;
+            _license = license;
+        }
+
+        [HttpPost("execute")]
+        public async Task<IActionResult> Execute([FromBody] {{Feature}}Request req)
+        {
+            if (!await _license.CanUse(User, LicenseFeature))
+                return StatusCode(403, new { error = "license_required", feature = LicenseFeature });
+
+            var resp = await _svc.Execute(req, User);
+            return Ok(resp);
+        }
+
+        [HttpPost("result")]
+        public async Task<IActionResult> Result([FromBody] {{Feature}}ResultRequest req)
+        {
+            if (!await _license.CanUse(User, LicenseFeature))
+                return StatusCode(403, new { error = "license_required", feature = LicenseFeature });
+
+            await _svc.RecordResult(req, User);
+            return Ok();
+        }
+    }
+}

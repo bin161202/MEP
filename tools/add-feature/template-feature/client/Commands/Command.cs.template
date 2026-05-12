@@ -1,0 +1,79 @@
+using Autodesk.Revit.Attributes;
+using Autodesk.Revit.UI;
+using MEPAuto.Client.Common.Auth;
+using MEPAuto.Client.Common.Commands;
+using MEPAuto.Contracts.DTOs;
+
+namespace MEPAuto.{{Feature}}.Commands
+{
+    /// <summary>
+    /// Feature {{Feature}} — TODO: mô tả ngắn 1 dòng feature làm gì.
+    /// </summary>
+    /// <remarks>
+    /// Cấu trúc 3 method tách bạch (Plan v3 — chuẩn bị 3 chế độ User/AI/CAD-PDF):
+    ///   - <see cref="RunFeature"/>: cửa cho USER bấm ribbon. Build input từ UI/Revit → ExecuteHeadless → ShowResult.
+    ///   - <see cref="ExecuteHeadless"/>: cửa cho LUỒNG NỀN (AI/CAD-PDF) gọi. Logic CHÍNH, KHÔNG show dialog.
+    ///   - <see cref="BuildInput"/> / <see cref="ShowResult"/>: helper riêng User mode.
+    /// Lưu ý (xem master plan v2 Phần VIII Lessons learned):
+    /// - [Transaction] PHẢI trên class concrete (KHÔNG inherit từ BaseFeatureCommand) — Lesson 1.
+    /// - .GetAwaiter().GetResult() OK vì ServerProxy đã ConfigureAwait(false) bên trong — Lesson 2.
+    /// </remarks>
+    [Transaction(TransactionMode.Manual)]
+    [Regeneration(RegenerationOption.Manual)]
+    public class {{Feature}}Command : BaseFeatureCommand
+    {
+        // ========== Cửa cho USER bấm ribbon ==========
+        protected override Result RunFeature(IFeatureContext ctx)
+        {
+            var input = BuildInput(ctx);
+            if (input == null) return Result.Cancelled;
+
+            var output = ExecuteHeadless(ctx, input);
+
+            ShowResult(output);
+            return Result.Succeeded;
+        }
+
+        // ========== Cửa HEADLESS — gọi được từ luồng nền (AI/CAD-PDF mode) ==========
+        /// <summary>
+        /// Logic CHÍNH của feature — gọi server execute + apply Revit + audit result.
+        /// KHÔNG show dialog, KHÔNG PickObject. Có thể gọi từ luồng nền sau ExternalEvent marshal.
+        /// </summary>
+        public static {{Feature}}Response ExecuteHeadless(IFeatureContext ctx, {{Feature}}Request input)
+        {
+            // POST server → server return PlanDto + JobId
+            var output = ctx.Server.Post<{{Feature}}Response>(
+                "/api/v1/{{FeatureLower}}/execute", input).GetAwaiter().GetResult();
+
+            // TODO: apply ops trong transaction nếu feature modify Revit
+            // ctx.RevitSvc.RunInTransaction("{{Feature}}", () => {
+            //     foreach (var item in output.Items)
+            //         ctx.RevitSvc.SetParameter(item.Id, "Mark", item.NewValue);
+            // });
+
+            // POST result → server audit hoàn thành
+            ctx.Server.Post(
+                "/api/v1/{{FeatureLower}}/result",
+                new {{Feature}}ResultRequest { JobId = output.JobId, Success = true })
+                .GetAwaiter().GetResult();
+
+            return output;
+        }
+
+        // ========== Helper riêng cho User mode ==========
+        private static {{Feature}}Request? BuildInput(IFeatureContext ctx)
+        {
+            // TODO: build snapshot từ ctx.RevitSvc.Get*() nếu feature cần probe Revit
+            var snapshot = new {{Feature}}SnapshotDto
+            {
+                // TODO: fill fields
+            };
+            return new {{Feature}}Request { Snapshot = snapshot };
+        }
+
+        private static void ShowResult({{Feature}}Response output)
+        {
+            TaskDialog.Show("MEPAuto - {{DisplayName}}", string.IsNullOrEmpty(output.Message) ? "Done." : output.Message);
+        }
+    }
+}
