@@ -137,6 +137,9 @@ if (-not $gitAvailable) {
 }
 
 # SCP từng path
+# QUAN TRỌNG: `tools/deploy` chứa `.env` (gitignored, sống ở VPS, chứa JWT_SIGNING_KEY).
+# rm -rf folder rồi scp -r sẽ xoá luôn .env → deploy lần 2 fail vì thiếu .env.
+# Workaround: backup .env trước rm, restore sau scp.
 foreach ($p in $paths) {
     $local = Join-Path $RepoRoot $p
     $pNorm = $p.Replace('\','/')
@@ -145,8 +148,17 @@ foreach ($p in $paths) {
     Invoke-Cmd "ssh $VpsHost `"mkdir -p $remoteDir`"" "Ensure remote dir: $remoteDir"
 
     if (Test-Path $local -PathType Container) {
+        $preserveEnv = ($pNorm -eq 'tools/deploy')
+        if ($preserveEnv) {
+            # Backup .env vào /tmp trước khi rm. `|| true` để không fail nếu .env chưa có (deploy lần đầu).
+            Invoke-Cmd "ssh $VpsHost `"mkdir -p /tmp/mepauto-sync && (cp -p $VpsPath/$pNorm/.env /tmp/mepauto-sync/.env 2>/dev/null || true)`" "Backup .env trước khi clear $pNorm"
+        }
         Invoke-Cmd "ssh $VpsHost `"rm -rf $VpsPath/$pNorm`"" "Clear remote folder: $pNorm"
         Invoke-Cmd "scp -r `"$local`" $VpsHost`:$remoteDir/" "Sync folder: $p"
+        if ($preserveEnv) {
+            # Restore .env nếu backup tồn tại. `|| true` để deploy đầu (chưa có .env) không fail.
+            Invoke-Cmd "ssh $VpsHost `"test -f /tmp/mepauto-sync/.env && mv /tmp/mepauto-sync/.env $VpsPath/$pNorm/.env && chmod 600 $VpsPath/$pNorm/.env || true`" "Restore .env vào $pNorm"
+        }
     } else {
         Invoke-Cmd "scp `"$local`" $VpsHost`:$VpsPath/$pNorm" "Sync file: $p"
     }
