@@ -85,6 +85,9 @@ installer/Files_*.wxs
 tools/deploy/VPS-INVENTORY.md
 tools/deploy/.vps-secrets
 
+## Tool binaries cache (download lúc build, không commit)
+tools/.cache/
+
 ## DPAPI cached JWT (lỡ commit là leak)
 *.dat
 jwt.dat

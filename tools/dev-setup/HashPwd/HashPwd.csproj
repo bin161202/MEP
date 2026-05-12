@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>MEPAuto.Tools.HashPwd</RootNamespace>
+    <AssemblyName>HashPwd</AssemblyName>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!-- Override Directory.Build.props classification: dev tool đứng ngoài rule
+         "Client project yêu cầu RevitVersion" + multi-version target. -->
+    <_IsClient>false</_IsClient>
+    <Configurations>Debug;Release;Debug-2022;Debug-2023;Debug-2024;Debug-2025;Debug-2026;Debug-2027;Release-2022;Release-2023;Release-2024;Release-2025;Release-2026;Release-2027</Configurations>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BCrypt.Net-Next" />
+  </ItemGroup>
+
+</Project>
