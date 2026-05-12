@@ -89,6 +89,10 @@ jobs:
         continue-on-error: ${{ matrix.revit == '2026' || matrix.revit == '2027' }}
         run: dotnet build MEPAuto.sln -c Release-${{ matrix.revit }}
 
+      # Client integration tests cần Revit thật cài trên máy (TestSetup.cs preload RevitAPI từ
+      # C:\Program Files\Autodesk\Revit X). CI runner không có Revit → chỉ build (qua sln ở trên),
+      # không run. Member chạy test này local theo MEMBER-DEV-WORKFLOW.
+
       - name: Lint ElementId usage
         if: matrix.revit == '2024'
         shell: pwsh

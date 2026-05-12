@@ -1,0 +1,74 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Test này reference Client.Common (SWITCH framework theo RevitVersion: net48 cho 2022-2024,
+    net8.0-windows cho 2025-2027). Test PHẢI match → conditional theo RevitVersion giống
+    Directory.Build.props handling client.
+
+    Override Directory.Build.props default cho Tests (net8.0 cố định) — auto-import vẫn chạy trước,
+    PropertyGroup conditional dưới đây override TargetFramework cuối cùng.
+  -->
+
+  <PropertyGroup>
+    <UseWPF>false</UseWPF>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <!-- Truyền REVIT_{ver} vào DefineConstants để TestSetup.cs chọn RevitDir đúng version. -->
+  <PropertyGroup Condition="'$(RevitVersion)' != ''">
+    <DefineConstants>$(DefineConstants);REVIT_$(RevitVersion)</DefineConstants>
+  </PropertyGroup>
+
+  <!-- TargetFramework theo RevitVersion (mirror client convention) -->
+  <PropertyGroup Condition="'$(RevitVersion)' == '2022' Or '$(RevitVersion)' == '2023' Or '$(RevitVersion)' == '2024'">
+    <TargetFramework>net48</TargetFramework>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(RevitVersion)' == '2025' Or '$(RevitVersion)' == '2026' Or '$(RevitVersion)' == '2027'">
+    <TargetFramework>net8.0-windows</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Moq" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\client\MEPAuto.Client.Common\MEPAuto.Client.Common.csproj" />
+    <ProjectReference Include="..\..\shared\MEPAuto.Contracts\MEPAuto.Contracts.csproj" />
+  </ItemGroup>
+
+  <!-- Disable xUnit shadow copy → giữ probing path = test bin để tìm Revit DLL deps. -->
+  <ItemGroup>
+    <None Include="xunit.runner.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <!--
+    Revit API ref với Private=true — Client.Common reference với Private=false (đúng cho Revit add-in load context),
+    nhưng test runner xUnit chạy ngoài Revit cần DLL local trong test bin. Copy explicit ở đây.
+    HintPath theo $(RevitVersion): ưu tiên Program Files install path; fallback stubs cho CI runner / version chưa cài.
+  -->
+  <ItemGroup Condition="'$(RevitVersion)' != ''">
+    <Reference Include="RevitAPI">
+      <HintPath Condition="Exists('C:\Program Files\Autodesk\Revit $(RevitVersion)\RevitAPI.dll')">C:\Program Files\Autodesk\Revit $(RevitVersion)\RevitAPI.dll</HintPath>
+      <HintPath Condition="!Exists('C:\Program Files\Autodesk\Revit $(RevitVersion)\RevitAPI.dll')">..\..\tools\revit-stubs\$(RevitVersion)\RevitAPI.dll</HintPath>
+      <Private>true</Private>
+      <SpecificVersion>false</SpecificVersion>
+    </Reference>
+    <Reference Include="RevitAPIUI">
+      <HintPath Condition="Exists('C:\Program Files\Autodesk\Revit $(RevitVersion)\RevitAPIUI.dll')">C:\Program Files\Autodesk\Revit $(RevitVersion)\RevitAPIUI.dll</HintPath>
+      <HintPath Condition="!Exists('C:\Program Files\Autodesk\Revit $(RevitVersion)\RevitAPIUI.dll')">..\..\tools\revit-stubs\$(RevitVersion)\RevitAPIUI.dll</HintPath>
+      <Private>true</Private>
+      <SpecificVersion>false</SpecificVersion>
+    </Reference>
+  </ItemGroup>
+
+</Project>
