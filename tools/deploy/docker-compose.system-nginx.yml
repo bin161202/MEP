@@ -25,6 +25,7 @@ services:
       - JWT__SIGNING_KEY=${JWT_SIGNING_KEY}
       - JWT__ISSUER=${JWT_ISSUER:-https://api.mepauto.local}
       - JWT__AUDIENCE=${JWT_AUDIENCE:-mepauto-client}
+      - JWT__REFRESHTOKENHOURS=${JWT_REFRESHTOKENHOURS:-8}
       - DataDir=/var/mepauto-data
     volumes:
       - /var/mepauto-data:/var/mepauto-data
