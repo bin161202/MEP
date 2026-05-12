@@ -1,19 +1,23 @@
-<#
+﻿<#
 .SYNOPSIS
-    Sync các thay đổi M2 (Phase 2 monitoring + Phase 5 versioning) lên VPS MEPAuto.
+    Sync toàn bộ server code + shared contracts MEPAuto lên VPS, sau đó trigger deploy.sh.
 
 .DESCRIPTION
-    Script này gom tất cả file mới/sửa thành 1 lệnh, tránh quên file.
+    Sync folder-level (KHÔNG whitelist file): mọi file/folder mới member thêm vào src/server hoặc
+    shared sẽ tự động được sync. Có "diff guard" so với git ls-files để cảnh báo nếu có folder
+    server-side tracked-by-git nằm ngoài whitelist (phòng trường hợp thêm folder gốc mới).
 
     Tiền điều kiện:
     - SSH key đã setup tới VPS (root@129.212.230.159) — không cần password.
     - Local đã build sạch sln (`dotnet build MEPAuto.sln -c Release` 0 warning).
     - VPS path /opt/mepauto/ tồn tại + có deploy.sh.
+    - git CLI có trong PATH (cho diff guard).
 
-    Script làm 3 việc:
-    1. SCP các file/folder thay đổi lên VPS (path tương đối giữ nguyên)
-    2. SSH chạy deploy.sh system (rebuild image + restart container)
-    3. Smoke test /health + /api/v1/version/check
+    Script làm 4 việc:
+    1. Diff guard: so $paths với git ls-files src/server shared → cảnh báo folder mới ngoài whitelist
+    2. SCP từng path lên VPS (folder dùng scp -r, file dùng scp)
+    3. Cleanup bin/obj trên VPS (scp -r kéo cả bin/obj local lên)
+    4. SSH chạy deploy.sh system + smoke test /health + /api/v1/version/check
 
 .PARAMETER VpsHost
     SSH target. Default: root@129.212.230.159.
@@ -43,19 +47,23 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+# Folder-level sync: mọi file mới member thêm dưới các path này tự động được sync.
+# Nếu member thêm folder GỐC mới (vd "src/api-v2"), diff guard sẽ cảnh báo + dừng.
 $paths = @(
-    # Phase 2 — server monitoring
+    # Config build chung (file gốc — sync nguyên file)
     "Directory.Packages.props",
-    "src/server/MEPAuto.Server.Api/MEPAuto.Server.Api.csproj",
-    "src/server/MEPAuto.Server.Api/Program.cs",
-    "src/server/MEPAuto.Server.Api/Controllers/HealthController.cs",
-    "src/server/MEPAuto.Server.Api/Controllers/MetricsController.cs",
-    "src/server/MEPAuto.Server.Api/Middleware/CorrelationMiddleware.cs",
-    "src/server/MEPAuto.Server.Api/Middleware/MetricsMiddleware.cs",
-    # Phase 5 — versioning feature + DTO
-    "shared/MEPAuto.Contracts/DTOs/VersionInfoDto.cs",
-    "src/server/features/MEPAuto.Server.Versioning"  # toàn folder
+    "Directory.Build.props",
+    "MEPAuto.sln",
+    # Toàn bộ server code (mọi feature/folder mới tự include)
+    "src/server",
+    # Toàn bộ shared contracts (mọi DTO mới tự include)
+    "shared",
+    # Deploy config (docker-compose, nginx, deploy.sh)
+    "tools/deploy"
 )
+
+# Folder server-side cần kiểm tra coverage bởi $paths (diff guard).
+$serverScopes = @("src/server", "shared")
 
 function Invoke-Cmd {
     param([string]$Command, [string]$Description)
@@ -81,6 +89,53 @@ foreach ($p in $paths) {
 }
 Write-Host "    All $($paths.Count) path tồn tại OK" -ForegroundColor Green
 
+# Diff guard — so $paths với git ls-files ($serverScopes)
+Write-Host "==> Diff guard — so paths với git ls-files" -ForegroundColor Cyan
+$gitAvailable = $null -ne (Get-Command git -ErrorAction SilentlyContinue)
+if (-not $gitAvailable) {
+    Write-Host "    git CLI không có trong PATH — bỏ qua diff guard" -ForegroundColor Yellow
+} else {
+    $pathsNorm = $paths | ForEach-Object { $_.Replace('\','/') }
+    $trackedFiles = & git -C $RepoRoot ls-files -- $serverScopes 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "    git ls-files fail — bỏ qua diff guard" -ForegroundColor Yellow
+    } else {
+        $uncovered = @()
+        foreach ($f in $trackedFiles) {
+            $fNorm = $f.Replace('\','/')
+            $covered = $false
+            foreach ($w in $pathsNorm) {
+                if ($fNorm -eq $w -or $fNorm.StartsWith("$w/")) {
+                    $covered = $true
+                    break
+                }
+            }
+            if (-not $covered) { $uncovered += $fNorm }
+        }
+        if ($uncovered.Count -gt 0) {
+            $uncoveredRoots = $uncovered |
+                ForEach-Object { ($_ -split '/')[0..1] -join '/' } |
+                Sort-Object -Unique
+            Write-Host ""
+            Write-Host "    CẢNH BÁO: $($uncovered.Count) file tracked-by-git KHÔNG nằm trong `$paths:" -ForegroundColor Yellow
+            $uncoveredRoots | ForEach-Object { Write-Host "      - $_/..." -ForegroundColor Yellow }
+            Write-Host ""
+            Write-Host "    Cần thêm vào `$paths trong sync-m2-to-vps.ps1 trước khi sync." -ForegroundColor Yellow
+            if ($DryRun) {
+                Write-Host "    (DryRun — tiếp tục để xem các lệnh khác)" -ForegroundColor DarkGray
+            } else {
+                $ans = Read-Host "    Tiếp tục sync mà KHÔNG có những file trên? (y/N)"
+                if ($ans -ne 'y') {
+                    Write-Host "Aborted." -ForegroundColor Red
+                    exit 1
+                }
+            }
+        } else {
+            Write-Host "    OK — $($trackedFiles.Count) file server-side đều được cover bởi `$paths" -ForegroundColor Green
+        }
+    }
+}
+
 # SCP từng path
 foreach ($p in $paths) {
     $local = Join-Path $RepoRoot $p
@@ -96,6 +151,9 @@ foreach ($p in $paths) {
         Invoke-Cmd "scp `"$local`" $VpsHost`:$VpsPath/$pNorm" "Sync file: $p"
     }
 }
+
+# Cleanup bin/obj trên VPS (scp -r kéo cả bin/obj local lên — DLL Windows-built không dùng được trong image Linux + tốn dung lượng)
+Invoke-Cmd "ssh $VpsHost `"find $VpsPath/src/server $VpsPath/shared -type d \( -name bin -o -name obj \) -prune -exec rm -rf {} + 2>/dev/null; true`"" "Cleanup bin/obj trên VPS"
 
 # Init version.json template lần đầu nếu chưa có
 $versionJsonRemote = "$DataDir/version.json"
