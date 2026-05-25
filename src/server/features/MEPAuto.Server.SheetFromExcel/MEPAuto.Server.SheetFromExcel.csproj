@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>MEPAuto.Server.SheetFromExcel</RootNamespace>
+    <AssemblyName>MEPAuto.Server.SheetFromExcel</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\shared\MEPAuto.Contracts\MEPAuto.Contracts.csproj" />
+    <ProjectReference Include="..\..\MEPAuto.Server.Core\MEPAuto.Server.Core.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>MEPAuto.SheetFromExcel</RootNamespace>
+    <AssemblyName>MEPAuto.SheetFromExcel</AssemblyName>
+    <!-- Feature dùng OpenFileDialog (WinForms) — cần bật UseWindowsForms cho net8.0-windows -->
+    <UseWindowsForms>true</UseWindowsForms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" />
+    <PackageReference Include="ExcelDataReader" />
+    <PackageReference Include="ExcelDataReader.DataSet" />
+    <PackageReference Include="Microsoft.Office.Interop.Excel" />
+    <PackageReference Include="System.Text.Encoding.CodePages" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\shared\MEPAuto.Contracts\MEPAuto.Contracts.csproj" />
+    <ProjectReference Include="..\..\MEPAuto.Client.Common\MEPAuto.Client.Common.csproj" />
+  </ItemGroup>
+
+  <!-- Embed icon 32×32 PNG vào assembly để RibbonBuilder load qua GetManifestResourceStream -->
+  <ItemGroup>
+    <EmbeddedResource Include="Icons\sheetfromexcel.png" />
+  </ItemGroup>
+
+  <!-- net48: System.Windows.Forms là framework assembly, cần reference explicit trong SDK-style project -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+    <Reference Include="System.Windows.Forms" />
+  </ItemGroup>
+
+</Project>
